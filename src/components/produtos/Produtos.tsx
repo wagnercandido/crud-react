@@ -142,7 +142,8 @@ export function Produtos(): JSX.Element {
 			<Container>
 				<Row>
 					<Col>
-						<h1>Produtos</h1>
+						<h1>Produtos <Button style={{marginLeft: '10px'}} icon="pi pi-plus" className="p-button-rounded p-button-success mr-2" onClick={() => location.href = '/cadastrar-produto'} />
+						</h1>
 					</Col>
 					<Col style={{ textAlign: 'right' }}>
 						<Button label={`Carrinho R$ ${totalPedido.toLocaleString('pt-br', { minimumFractionDigits: 2 })}`} icon="pi pi-shopping-cart" className="p-button-rounded p-button-success mr-2" onClick={() => { exibirModalCarrinho(true) }} />
