@@ -42,8 +42,6 @@ export function Produtos(): JSX.Element {
 	function buscarProdutos(pages: number = 0) {
 		produtoService.findAll(pages).then((res: ResponsePagination) => {
 			setProdutos(res.data.content);
-			console.log('produtos', produtos);
-
 			const paginas = Array.from(Array(res.data.totalPages).keys());
 			setPages(paginas);
 		});
