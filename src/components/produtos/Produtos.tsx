@@ -122,15 +122,20 @@ export function Produtos(): JSX.Element {
 	}
 
 	function enviarPedido() {
-		pedidoService.send(carrinho).then(res => {
-			setCarrinho([]);
-			calcularPedido();
-			setVisibleDialogCarrinho(false);
-			exibirModalResposta(true, res.data);
-
-		}).catch(() => {
-			alertService.error('Erro ao enviar pedido, consulte um administrador.')
-		});
+		if (carrinho.length) {
+			pedidoService.send(carrinho).then(res => {
+				setCarrinho([]);
+				calcularPedido();
+				setVisibleDialogCarrinho(false);
+				exibirModalResposta(true, res.data);
+				
+			}).catch(() => {
+				alertService.error('Erro ao enviar pedido, consulte um administrador.');
+			});
+			return;
+		}
+		alertService.error('Carrinho vazio. É necessário adicionar itens ao carrinho');
+		setVisibleDialogCarrinho(false);
 	}
 
 	function onPageChange(page: number) {
