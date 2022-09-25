@@ -1,43 +1,70 @@
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { classNames } from 'primereact/utils';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { Controller, useForm } from 'react-hook-form';
 import { Produto } from '../../dtos/Produto';
 import { alertService } from '../../services/AlertService';
+import CurrencyInput from 'react-currency-input';
 import './CadastrarProduto.css'
+import { ProdutoService } from '../../services/ProdutoService';
 
 export function CadastrarProduto() {
 	const [showMessage, setShowMessage] = useState(false);
 	const [formData, setFormData] = useState<Produto>(new Produto());
-	const { control, formState: { errors }, handleSubmit, reset } = useForm({ defaultValues: formData });
-	const [preco, setPreco] = useState<number>(0);
+	const { control, formState: { errors }, handleSubmit, reset, watch } = useForm({ defaultValues: formData });
+	const [validacoes, setValidacoes] = useState({ embalagem: false, multiplo: false });
+
 
 	const produtoService = new ProdutoService();
 
+	const camposValidacoes = ['embalagem', 'multiplo'];
+
+	useEffect(() => {
+		watch((value, { name }) => {
+			validarCampos(name);
+		});
+	}, []);
+
 	function onSubmit(data: any) {
+		camposValidacoes.forEach(campo => validarCampos(campo));
+		if (Object.keys(validacoes).some(item => validacoes[item] === true)) {
+			return;
+		}
 		setFormData(data);
 		setShowMessage(true);
 		salvarProduto(data);
-		reset();
 	}
 
-	function salvarProduto(produto: Produto) {
-		produto.preco = preco;
+	function salvarProduto(produto) {
+		produto.preco = parseFloat(produto.preco.replaceAll('.', '').replaceAll(',', '.'));
 		produtoService.save(produto)
-			.then(res => {
-				alertService.success(res.message);
+			.then(() => {
+				alertService.success('Produto cadastrado com sucesso.');
+				setTimeout(() => {
+					window.history.back();
+				}, 1500);
 			})
-			.catch(erro => {
-				alertService.error(erro.message);
-			})
+			.catch(() => {
+				alertService.error('Erro ao cadastrar produto, consulte o administrador.');
+			});
 	}
 
+	function validarCampos(campo) {
+		if (camposValidacoes.includes(campo)) {
+			const campoValidarhasValor = campo === 'multiplo' ? 'embalagem' : 'multiplo';
+			if (!control._formValues['multiplo'] && !control._formValues['embalagem']) {
+				camposValidacoes.forEach(c => {
+					validacoes[c] = false;
+				})
+			} else {
+				validacoes[campoValidarhasValor] = !control._formValues[campoValidarhasValor] ? true : false;
+				validacoes[campo] = control._formValues[campo] ? false : true;
+			}
 
-	function onChangeField(field: string, value: any) {
-		formData[field] = value;
-		setFormData(formData);
+			setValidacoes(validacoes);
+		}
 	}
 
 	function getFormErrorMessage(name: string) {
@@ -49,7 +76,7 @@ export function CadastrarProduto() {
 			<Container>
 				<Row><h1>Cadastrar Produto</h1></Row>
 				<Row>
-					<Col xs={6}>
+					<Col md={6} sm>
 						<div className='field'>
 							<label htmlFor='name'>Nome*</label>
 							<span className='p-float-label' >
@@ -59,10 +86,16 @@ export function CadastrarProduto() {
 							</span>
 							{getFormErrorMessage('nome')}
 						</div>
+					</Col>
+					<Col md={3} sm>
 						<div className='field'>
 							<label htmlFor='preco'>Preço*</label>
-							<CurrencyInput required min={0} onChange={(e) => setPreco(e.target.value)} className={'campo-preco'} />
+							<Controller name='preco' control={control} rules={{ required: 'Preço obrigatório.' }} render={({ field, fieldState }) => (
+								<CurrencyInput id={field.name} {...field} decimalSeparator="," thousandSeparator="." maskOptions={undefined} className={`campo-preco ${classNames({ 'p-invalid': fieldState.invalid })}`} />
+							)} />
 						</div>
+					</Col>
+					<Col md={3} sm>
 						<div className='field'>
 							<label htmlFor='codigo'>Código*</label>
 							<span className='p-float-label' >
@@ -72,91 +105,50 @@ export function CadastrarProduto() {
 							</span>
 							{getFormErrorMessage('codigo')}
 						</div>
+					</Col>
+					<Col md={3} sm>
 						<div className='field'>
-							<label htmlFor='embalagem'>Embalagem*</label>
+							<label htmlFor='embalagem'>Embalagem{validacoes.embalagem && '*'}</label>
 							<span className='p-float-label' >
-								<Controller name='embalagem' control={control} rules={formData.codigo ? { required: 'Embalagem obrigatório.' } : null} render={({ field, fieldState }) => (
-									<InputText id={field.name} {...field} className={classNames({ 'p-invalid': fieldState.invalid })} />
+								<Controller name='embalagem' control={control} render={({ field, fieldState }) => (
+									<InputText id={field.name} {...field} className={classNames({ 'p-invalid': validacoes[field.name] })} />
 								)} />
 							</span>
-							{getFormErrorMessage('embalagem')}
+							{validacoes.embalagem && <small className='p-error'>Embalagem obrigatória</small>}
 						</div>
+					</Col>
+					<Col md={3} sm>
 						<div className='field'>
-							<label htmlFor='multiplo'>Múltiplo*</label>
+							<label htmlFor='multiplo'>Múltiplo{validacoes.multiplo && '*'}</label>
 							<span className='p-float-label' >
-								<Controller name='multiplo' control={control} rules={{ required: 'Múltiplo obrigatório.' }} render={({ field, fieldState }) => (
-									<InputText id={field.name} {...field} type='number' className={classNames({ 'p-invalid': fieldState.invalid })} />
+								<Controller name='multiplo' control={control} render={({ field, fieldState }) => (
+									<InputText id={field.name} {...field} type='number' min={0} className={classNames({ 'p-invalid': validacoes[field.name] })} />
 								)} />
 							</span>
-							{getFormErrorMessage('multiplo')}
+							{validacoes.multiplo && <small className='p-error'>Múltiplo obrigatório</small>}
 						</div>
+					</Col>
+					<Col md={3} sm>
 						<div className='field'>
-							<label htmlFor='ipi'>IPI*</label>
+							<label htmlFor='ipi'>IPI</label>
 							<span className='p-float-label' >
 								<Controller name='ipi' control={control} render={({ field, fieldState }) => (
-									<InputText id={field.name} {...field} type='number' className={classNames({ 'p-invalid': fieldState.invalid })} />
+									<InputText id={field.name} {...field} type='number' min={0} className={classNames({ 'p-invalid': fieldState.invalid })} />
 								)} />
 							</span>
 							{getFormErrorMessage('ipi')}
 						</div>
-
 					</Col>
 				</Row>
 				<Row>
-					<Col>
+					<Col style={{ textAlign: 'end' }}>
 						<div className="field">
-							<Button label='Cadastrar' className='p-button-success mr-2' type='submit' />
+							<Button label='Cancelar' className='p-button-warning mr-2' type='button' onClick={() => window.history.back()} />
+							<Button style={{ marginLeft: '20px' }} label='Cadastrar' className='p-button-success mr-2' type='submit' />
 						</div>
 					</Col>
 				</Row>
 			</Container>
-		</form>
+		</form >
 	)
 }
-
-import PropTypes from 'prop-types'
-import MaskedInput from 'react-text-mask'
-import createNumberMask from 'text-mask-addons/dist/createNumberMask'
-import { PedidoService } from '../../services/PedidoService';
-import { ProdutoService } from '../../services/ProdutoService';
-
-const defaultMaskOptions = {
-	prefix: '',
-	suffix: '',
-	includeThousandsSeparator: true,
-	thousandsSeparatorSymbol: '.',
-	allowDecimal: true,
-	decimalSymbol: ',',
-	decimalLimit: 2, // how many digits allowed after the decimal
-	integerLimit: 7, // limit length of integer numbers
-	allowNegative: false,
-	allowLeadingZeroes: false,
-}
-
-const CurrencyInput = ({ maskOptions, ...inputProps }) => {
-	const currencyMask = createNumberMask({
-		...defaultMaskOptions,
-		...maskOptions,
-	})
-
-	return <MaskedInput mask={currencyMask} {...inputProps} />
-}
-
-CurrencyInput.defaultProps = {
-	inputMode: 'numeric',
-	maskOptions: {},
-}
-
-CurrencyInput.propTypes = {
-	inputmode: PropTypes.string,
-	maskOptions: PropTypes.shape({
-		prefix: PropTypes.string,
-		suffix: PropTypes.string,
-		thousandsSeparatorSymbol: PropTypes.string,
-		decimalSymbol: PropTypes.string,
-		decimalLimit: PropTypes.string,
-		integerLimit: PropTypes.number,
-	}),
-}
-
-export default CurrencyInput

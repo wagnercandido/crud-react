@@ -1,8 +1,9 @@
 import { Button } from 'primereact/button';
 import { Dialog } from "primereact/dialog";
 import { useEffect, useState } from "react";
-import { Card, Col, Container, Pagination, Row } from "react-bootstrap";
+import { Col, Container, Pagination, Row } from "react-bootstrap";
 import { Produto } from "../../dtos/Produto";
+import { alertService } from '../../services/AlertService';
 import { PedidoService } from "../../services/PedidoService";
 import { ProdutoService } from "../../services/ProdutoService";
 import CardProduto from '../card-produto/CardProduto';
@@ -127,8 +128,8 @@ export function Produtos(): JSX.Element {
 			setVisibleDialogCarrinho(false);
 			exibirModalResposta(true, res.data);
 
-		}).catch(erro => {
-			console.log('erro', erro);
+		}).catch(() => {
+			alertService.error('Erro ao enviar pedido, consulte um administrador.')
 		});
 	}
 
@@ -142,7 +143,7 @@ export function Produtos(): JSX.Element {
 			<Container>
 				<Row>
 					<Col>
-						<h1>Produtos <Button style={{marginLeft: '10px'}} icon="pi pi-plus" className="p-button-rounded p-button-success mr-2" onClick={() => location.href = '/cadastrar-produto'} />
+						<h1>Produtos <Button style={{ marginLeft: '10px' }} label='Cadastrar produto' icon="pi pi-plus" className="p-button-rounded p-button-success mr-2" onClick={() => location.href = '/cadastrar-produto'} />
 						</h1>
 					</Col>
 					<Col style={{ textAlign: 'right' }}>
@@ -152,12 +153,11 @@ export function Produtos(): JSX.Element {
 				<Row style={{ marginTop: '10px' }}>
 					{
 						produtos.map(produto => {
-							return <Col md={6}>
+							return <Col md={6} key={produto._id}>
 								<CardProduto produto={produto} selecionarProduto={selecionarProduto}></CardProduto>
 							</Col>
 						})
 					}
-
 				</Row>
 
 				<Row>
